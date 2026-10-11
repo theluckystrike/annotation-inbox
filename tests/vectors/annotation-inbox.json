@@ -1,0 +1,1646 @@
+{
+ "slug": "annotation-inbox",
+ "module": "annotation-inbox/src/logic",
+ "function": "evalVector",
+ "note": "args = [fn, args]: fn names an exported function of src/logic.ts and args is its argument list, so each case is {name, fn, args, expected}. Expected values are written by hand from the Hypothesis API v1 reference (research/obsidian-run/raw/b1: search_after is a strict 'after' on the sorted field, ISO 8601 with microseconds, limit max 200, replies carry references) and from the Obsidian tag and file name rules. Hash values come from a separate Python FNV-1a, not from the TypeScript code.",
+ "cases": [
+  {
+   "name": "parse a highlight with quote, position, tags and link",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "VSpJRgXUEeiMtE_7Sd-LFg",
+     "created": "2026-10-01T08:00:00.123456+00:00",
+     "updated": "2026-10-02T09:30:00.654321+00:00",
+     "user": "acct:jane@hypothes.is",
+     "uri": "https://example.com/post",
+     "text": "Good point",
+     "tags": [
+      "Reading List",
+      "2024"
+     ],
+     "group": "__world__",
+     "target": [
+      {
+       "source": "https://example.com/post",
+       "selector": [
+        {
+         "type": "TextPositionSelector",
+         "start": 120,
+         "end": 150
+        },
+        {
+         "type": "TextQuoteSelector",
+         "exact": "the quick brown fox",
+         "prefix": "a ",
+         "suffix": " b"
+        }
+       ]
+      }
+     ],
+     "document": {
+      "title": [
+       "Example Post"
+      ]
+     },
+     "links": {
+      "incontext": "https://hyp.is/VSpJRgXUEeiMtE_7Sd-LFg/example.com/post"
+     },
+     "hidden": false,
+     "flagged": false
+    }
+   ],
+   "expected": {
+    "id": "VSpJRgXUEeiMtE_7Sd-LFg",
+    "created": "2026-10-01T08:00:00.123456+00:00",
+    "updated": "2026-10-02T09:30:00.654321+00:00",
+    "uri": "https://example.com/post",
+    "title": "Example Post",
+    "text": "Good point",
+    "quote": "the quick brown fox",
+    "tags": [
+     "Reading List",
+     "2024"
+    ],
+    "position": 120,
+    "link": "https://hyp.is/VSpJRgXUEeiMtE_7Sd-LFg/example.com/post"
+   }
+  },
+  {
+   "name": "parse a page note with a string title and an html link",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     }
+    }
+   ],
+   "expected": {
+    "id": "AAAA1111",
+    "created": "2026-10-01T08:00:00+00:00",
+    "updated": "2026-10-01T08:00:00+00:00",
+    "uri": "https://example.com/post",
+    "title": "Plain title",
+    "text": "Page note text",
+    "quote": "",
+    "tags": [],
+    "position": null,
+    "link": "https://hypothes.is/a/AAAA1111"
+   }
+  },
+  {
+   "name": "parse skips a reply",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     },
+     "references": [
+      "VSpJRgXUEeiMtE_7Sd-LFg"
+     ]
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips a hidden annotation",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     },
+     "hidden": true
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips a row without id",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     }
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips an id that is too short",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "ab",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     }
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips a bad updated time",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "yesterday",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     }
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips a row without uri",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "  ",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "html": "https://hypothes.is/a/AAAA1111"
+     }
+    }
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse skips a string",
+   "fn": "parseAnnotation",
+   "args": [
+    "x"
+   ],
+   "expected": null
+  },
+  {
+   "name": "parse drops a link that is not https",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00+00:00",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {
+      "incontext": "javascript:alert(1)"
+     }
+    }
+   ],
+   "expected": {
+    "id": "AAAA1111",
+    "created": "2026-10-01T08:00:00+00:00",
+    "updated": "2026-10-01T08:00:00+00:00",
+    "uri": "https://example.com/post",
+    "title": "Plain title",
+    "text": "Page note text",
+    "quote": "",
+    "tags": [],
+    "position": null,
+    "link": ""
+   }
+  },
+  {
+   "name": "parse uses updated when created is missing",
+   "fn": "parseAnnotation",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "updated": "2026-10-01T08:00:00+00:00",
+     "uri": "https://example.com/post",
+     "text": "Page note text",
+     "tags": [],
+     "target": [
+      {
+       "source": "https://example.com/post"
+      }
+     ],
+     "document": {
+      "title": "Plain title"
+     },
+     "links": {}
+    }
+   ],
+   "expected": {
+    "id": "AAAA1111",
+    "created": "2026-10-01T08:00:00+00:00",
+    "updated": "2026-10-01T08:00:00+00:00",
+    "uri": "https://example.com/post",
+    "title": "Plain title",
+    "text": "Page note text",
+    "quote": "",
+    "tags": [],
+    "position": null,
+    "link": ""
+   }
+  },
+  {
+   "name": "page key drops fragment, default port and trailing slash",
+   "fn": "pageKey",
+   "args": [
+    "https://Example.com:443/a/b/#frag"
+   ],
+   "expected": "https://example.com/a/b"
+  },
+  {
+   "name": "page key of a bare host",
+   "fn": "pageKey",
+   "args": [
+    "https://example.com/"
+   ],
+   "expected": "https://example.com"
+  },
+  {
+   "name": "page key keeps the query",
+   "fn": "pageKey",
+   "args": [
+    "https://example.com/p?x=1#h"
+   ],
+   "expected": "https://example.com/p?x=1"
+  },
+  {
+   "name": "page key keeps a pdf urn",
+   "fn": "pageKey",
+   "args": [
+    "urn:x-pdf:abc123"
+   ],
+   "expected": "urn:x-pdf:abc123"
+  },
+  {
+   "name": "page key trims spaces",
+   "fn": "pageKey",
+   "args": [
+    "  http://example.com/a  "
+   ],
+   "expected": "http://example.com/a"
+  },
+  {
+   "name": "page key of text that is not a url",
+   "fn": "pageKey",
+   "args": [
+    "https://"
+   ],
+   "expected": "https://"
+  },
+  {
+   "name": "page key keeps a non default port",
+   "fn": "pageKey",
+   "args": [
+    "http://localhost:8080/x/"
+   ],
+   "expected": "http://localhost:8080/x"
+  },
+  {
+   "name": "title from a url is host and path",
+   "fn": "titleFromUri",
+   "args": [
+    "https://example.com/a/b/"
+   ],
+   "expected": "example.com/a/b"
+  },
+  {
+   "name": "title from a urn is the urn",
+   "fn": "titleFromUri",
+   "args": [
+    "urn:x-pdf:abc123"
+   ],
+   "expected": "urn:x-pdf:abc123"
+  },
+  {
+   "name": "file name keeps plain text",
+   "fn": "sanitizeFileName",
+   "args": [
+    "How to read a paper"
+   ],
+   "expected": "How to read a paper"
+  },
+  {
+   "name": "file name turns colon and bar into dashes",
+   "fn": "sanitizeFileName",
+   "args": [
+    "Foo: bar | Baz"
+   ],
+   "expected": "Foo - bar - Baz"
+  },
+  {
+   "name": "file name drops path and link characters",
+   "fn": "sanitizeFileName",
+   "args": [
+    "a/b\\c*d?e\"f<g>h#i^j[k]l"
+   ],
+   "expected": "a b c d e f g h i j k l"
+  },
+  {
+   "name": "file name trims dots and spaces",
+   "fn": "sanitizeFileName",
+   "args": [
+    "  ...Hidden.  "
+   ],
+   "expected": "Hidden"
+  },
+  {
+   "name": "file name avoids a reserved name",
+   "fn": "sanitizeFileName",
+   "args": [
+    "CON"
+   ],
+   "expected": "_CON"
+  },
+  {
+   "name": "file name avoids a reserved name with an extension",
+   "fn": "sanitizeFileName",
+   "args": [
+    "nul.txt"
+   ],
+   "expected": "_nul.txt"
+  },
+  {
+   "name": "file name of nothing is Untitled",
+   "fn": "sanitizeFileName",
+   "args": [
+    ""
+   ],
+   "expected": "Untitled"
+  },
+  {
+   "name": "file name of only bad characters is Untitled",
+   "fn": "sanitizeFileName",
+   "args": [
+    "???"
+   ],
+   "expected": "Untitled"
+  },
+  {
+   "name": "file name cuts to the limit",
+   "fn": "sanitizeFileName",
+   "args": [
+    "abcdefghij",
+    5
+   ],
+   "expected": "abcde"
+  },
+  {
+   "name": "file name cut does not leave a trailing space",
+   "fn": "sanitizeFileName",
+   "args": [
+    "hello world",
+    6
+   ],
+   "expected": "hello"
+  },
+  {
+   "name": "file name cuts by characters, not code units",
+   "fn": "sanitizeFileName",
+   "args": [
+    "😀😀😀",
+    2
+   ],
+   "expected": "😀😀"
+  },
+  {
+   "name": "file name replaces control characters",
+   "fn": "sanitizeFileName",
+   "args": [
+    "a\u0000b\nc"
+   ],
+   "expected": "a b c"
+  },
+  {
+   "name": "file name composes accents",
+   "fn": "sanitizeFileName",
+   "args": [
+    "é"
+   ],
+   "expected": "é"
+  },
+  {
+   "name": "file name drops a leading dash",
+   "fn": "sanitizeFileName",
+   "args": [
+    "- Title"
+   ],
+   "expected": "Title"
+  },
+  {
+   "name": "file name drops a trailing colon",
+   "fn": "sanitizeFileName",
+   "args": [
+    "Foo:"
+   ],
+   "expected": "Foo"
+  },
+  {
+   "name": "file name collapses repeated dashes",
+   "fn": "sanitizeFileName",
+   "args": [
+    "A: | B"
+   ],
+   "expected": "A - B"
+  },
+  {
+   "name": "template date and title",
+   "fn": "renderFileName",
+   "args": [
+    "{date} {title}",
+    {
+     "key": "https://example.com/post",
+     "uri": "https://www.example.com/post",
+     "title": "How to read: a paper",
+     "firstCreated": "2026-10-01T08:00:00+00:00"
+    }
+   ],
+   "expected": "2026-10-01 How to read - a paper"
+  },
+  {
+   "name": "template domain drops www",
+   "fn": "renderFileName",
+   "args": [
+    "{domain} - {title}",
+    {
+     "key": "https://example.com/post",
+     "uri": "https://www.example.com/post",
+     "title": "How to read: a paper",
+     "firstCreated": "2026-10-01T08:00:00+00:00"
+    }
+   ],
+   "expected": "example.com - How to read - a paper"
+  },
+  {
+   "name": "template id is the page hash",
+   "fn": "renderFileName",
+   "args": [
+    "{id}",
+    {
+     "key": "https://example.com/post",
+     "uri": "https://www.example.com/post",
+     "title": "How to read: a paper",
+     "firstCreated": "2026-10-01T08:00:00+00:00"
+    }
+   ],
+   "expected": "1eb48dde"
+  },
+  {
+   "name": "template unknown token is empty",
+   "fn": "renderFileName",
+   "args": [
+    "{foo}{title}",
+    {
+     "key": "https://example.com/post",
+     "uri": "https://www.example.com/post",
+     "title": "How to read: a paper",
+     "firstCreated": "2026-10-01T08:00:00+00:00"
+    }
+   ],
+   "expected": "How to read - a paper"
+  },
+  {
+   "name": "template slash cannot make a folder",
+   "fn": "renderFileName",
+   "args": [
+    "{domain}/{title}",
+    {
+     "key": "https://example.com/post",
+     "uri": "https://www.example.com/post",
+     "title": "How to read: a paper",
+     "firstCreated": "2026-10-01T08:00:00+00:00"
+    }
+   ],
+   "expected": "example.com How to read - a paper"
+  },
+  {
+   "name": "hash of nothing",
+   "fn": "shortHash",
+   "args": [
+    ""
+   ],
+   "expected": "811c9dc5"
+  },
+  {
+   "name": "hash of a",
+   "fn": "shortHash",
+   "args": [
+    "a"
+   ],
+   "expected": "e40c292c"
+  },
+  {
+   "name": "hash of an address",
+   "fn": "shortHash",
+   "args": [
+    "https://example.com/post"
+   ],
+   "expected": "1eb48dde"
+  },
+  {
+   "name": "folder keeps a plain name",
+   "fn": "normalizeFolder",
+   "args": [
+    "Annotation Inbox"
+   ],
+   "expected": "Annotation Inbox"
+  },
+  {
+   "name": "folder drops extra slashes",
+   "fn": "normalizeFolder",
+   "args": [
+    "/a//b/"
+   ],
+   "expected": "a/b"
+  },
+  {
+   "name": "folder drops dot dot",
+   "fn": "normalizeFolder",
+   "args": [
+    "a/../b"
+   ],
+   "expected": "a/b"
+  },
+  {
+   "name": "folder turns backslash into slash",
+   "fn": "normalizeFolder",
+   "args": [
+    "a\\b"
+   ],
+   "expected": "a/b"
+  },
+  {
+   "name": "folder of spaces is the vault root",
+   "fn": "normalizeFolder",
+   "args": [
+    "   "
+   ],
+   "expected": ""
+  },
+  {
+   "name": "folder drops bad characters",
+   "fn": "normalizeFolder",
+   "args": [
+    "x:y/z*"
+   ],
+   "expected": "xy/z"
+  },
+  {
+   "name": "folder dot is the vault root",
+   "fn": "normalizeFolder",
+   "args": [
+    "."
+   ],
+   "expected": ""
+  },
+  {
+   "name": "template empty is the default",
+   "fn": "normalizeTemplate",
+   "args": [
+    ""
+   ],
+   "expected": "{title}"
+  },
+  {
+   "name": "template is trimmed",
+   "fn": "normalizeTemplate",
+   "args": [
+    "  {date} {title} "
+   ],
+   "expected": "{date} {title}"
+  },
+  {
+   "name": "template is cut at 120 characters",
+   "fn": "normalizeTemplate",
+   "args": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ],
+   "expected": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "name": "user from a name",
+   "fn": "normalizeUser",
+   "args": [
+    "jane"
+   ],
+   "expected": "acct:jane@hypothes.is"
+  },
+  {
+   "name": "user with an at sign",
+   "fn": "normalizeUser",
+   "args": [
+    "@jane"
+   ],
+   "expected": "acct:jane@hypothes.is"
+  },
+  {
+   "name": "user already complete",
+   "fn": "normalizeUser",
+   "args": [
+    "acct:jane@hypothes.is"
+   ],
+   "expected": "acct:jane@hypothes.is"
+  },
+  {
+   "name": "user keeps its case",
+   "fn": "normalizeUser",
+   "args": [
+    "Jane_Doe@Hypothes.is"
+   ],
+   "expected": "acct:Jane_Doe@hypothes.is"
+  },
+  {
+   "name": "user of another authority is refused",
+   "fn": "normalizeUser",
+   "args": [
+    "jane@example.org"
+   ],
+   "expected": ""
+  },
+  {
+   "name": "user that is too short is refused",
+   "fn": "normalizeUser",
+   "args": [
+    "ab"
+   ],
+   "expected": ""
+  },
+  {
+   "name": "user with a space is refused",
+   "fn": "normalizeUser",
+   "args": [
+    "a b"
+   ],
+   "expected": ""
+  },
+  {
+   "name": "empty user is refused",
+   "fn": "normalizeUser",
+   "args": [
+    ""
+   ],
+   "expected": ""
+  },
+  {
+   "name": "search query without a cursor",
+   "fn": "searchQuery",
+   "args": [
+    "acct:jane@hypothes.is",
+    null,
+    200
+   ],
+   "expected": "user=acct%3Ajane%40hypothes.is&sort=updated&order=asc&limit=200"
+  },
+  {
+   "name": "search query with a cursor is encoded as in the API docs",
+   "fn": "searchQuery",
+   "args": [
+    "acct:jane@hypothes.is",
+    "2026-10-02T09:30:00.654321+00:00",
+    200
+   ],
+   "expected": "user=acct%3Ajane%40hypothes.is&sort=updated&order=asc&limit=200&search_after=2026-10-02T09%3A30%3A00.654321%2B00%3A00"
+  },
+  {
+   "name": "search limit is capped at 200",
+   "fn": "searchQuery",
+   "args": [
+    "acct:jane@hypothes.is",
+    null,
+    500
+   ],
+   "expected": "user=acct%3Ajane%40hypothes.is&sort=updated&order=asc&limit=200"
+  },
+  {
+   "name": "search limit is at least 1",
+   "fn": "searchQuery",
+   "args": [
+    "acct:jane@hypothes.is",
+    null,
+    0
+   ],
+   "expected": "user=acct%3Ajane%40hypothes.is&sort=updated&order=asc&limit=1"
+  },
+  {
+   "name": "cursor goes back one second",
+   "fn": "rewindCursor",
+   "args": [
+    "2026-10-02T09:30:00.654321+00:00",
+    1000
+   ],
+   "expected": "2026-10-02T09:29:59.000000+00:00"
+  },
+  {
+   "name": "cursor goes back over midnight and year",
+   "fn": "rewindCursor",
+   "args": [
+    "2026-01-01T00:00:00.5Z",
+    1000
+   ],
+   "expected": "2025-12-31T23:59:59.000000+00:00"
+  },
+  {
+   "name": "cursor with an offset is turned into UTC",
+   "fn": "rewindCursor",
+   "args": [
+    "2026-10-02T09:30:00+07:00",
+    1000
+   ],
+   "expected": "2026-10-02T02:29:59.000000+00:00"
+  },
+  {
+   "name": "cursor that is no time stays",
+   "fn": "rewindCursor",
+   "args": [
+    "nonsense",
+    1000
+   ],
+   "expected": "nonsense"
+  },
+  {
+   "name": "front matter time from the API",
+   "fn": "updatedStamp",
+   "args": [
+    "2026-10-02T09:30:00.654321+00:00"
+   ],
+   "expected": "2026-10-02T09:30:00Z"
+  },
+  {
+   "name": "front matter time with an offset",
+   "fn": "updatedStamp",
+   "args": [
+    "2026-10-02T09:30:00+07:00"
+   ],
+   "expected": "2026-10-02T02:30:00Z"
+  },
+  {
+   "name": "tag with a space",
+   "fn": "tagText",
+   "args": [
+    "Reading List"
+   ],
+   "expected": "Reading-List"
+  },
+  {
+   "name": "tag of digits",
+   "fn": "tagText",
+   "args": [
+    "2024"
+   ],
+   "expected": "tag-2024"
+  },
+  {
+   "name": "tag drops bad characters",
+   "fn": "tagText",
+   "args": [
+    "a#b!"
+   ],
+   "expected": "ab"
+  },
+  {
+   "name": "tag of spaces is empty",
+   "fn": "tagText",
+   "args": [
+    "  "
+   ],
+   "expected": ""
+  },
+  {
+   "name": "tag keeps a slash",
+   "fn": "tagText",
+   "args": [
+    "AI/ML"
+   ],
+   "expected": "AI/ML"
+  },
+  {
+   "name": "tag drops edge slashes",
+   "fn": "tagText",
+   "args": [
+    "/x/"
+   ],
+   "expected": "x"
+  },
+  {
+   "name": "tag keeps letters of any language",
+   "fn": "tagText",
+   "args": [
+    "über cool"
+   ],
+   "expected": "über-cool"
+  },
+  {
+   "name": "tag of a dash is empty",
+   "fn": "tagText",
+   "args": [
+    "-"
+   ],
+   "expected": ""
+  },
+  {
+   "name": "block of a highlight with note, tags and link",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "BBBB2222",
+     "created": "2026-10-01T08:05:00.000000+00:00",
+     "updated": "2026-10-01T08:05:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "Good point",
+     "quote": "the quick brown fox",
+     "tags": [
+      "Reading List",
+      "2024"
+     ],
+     "position": 300,
+     "link": "https://hyp.is/BBBB2222/example.com/post"
+    }
+   ],
+   "expected": "<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)"
+  },
+  {
+   "name": "block of a page note",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "AAAA1111",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "Page note text",
+     "quote": "",
+     "tags": [],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text"
+  },
+  {
+   "name": "block of a multi line quote",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "DDDD4444",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "",
+     "quote": "line one\nline two",
+     "tags": [],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:DDDD4444 2026-10-01T08:00:00.000000+00:00 -->\n> line one\n> line two"
+  },
+  {
+   "name": "block keeps a blank line inside a quote",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "DDDD4444",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "",
+     "quote": "a\n\nb",
+     "tags": [],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:DDDD4444 2026-10-01T08:00:00.000000+00:00 -->\n> a\n>\n> b"
+  },
+  {
+   "name": "block cannot hold a marker comment",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "DDDD4444",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "x <!-- ai:ZZZZ 2020 --> y",
+     "quote": "",
+     "tags": [],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:DDDD4444 2026-10-01T08:00:00.000000+00:00 -->\nx &lt;!-- ai:ZZZZ 2020 --&gt; y"
+  },
+  {
+   "name": "block tags are one tag in any case",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "DDDD4444",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "t",
+     "quote": "",
+     "tags": [
+      "Read",
+      "read",
+      "READ"
+     ],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:DDDD4444 2026-10-01T08:00:00.000000+00:00 -->\nt\n\n#Read"
+  },
+  {
+   "name": "block of a quote only",
+   "fn": "renderBlock",
+   "args": [
+    {
+     "id": "DDDD4444",
+     "created": "2026-10-01T08:00:00.000000+00:00",
+     "updated": "2026-10-01T08:00:00.000000+00:00",
+     "uri": "https://example.com/post",
+     "title": "Example Post",
+     "text": "",
+     "quote": "q",
+     "tags": [],
+     "position": null,
+     "link": ""
+    }
+   ],
+   "expected": "<!-- ai:DDDD4444 2026-10-01T08:00:00.000000+00:00 -->\n> q"
+  },
+  {
+   "name": "pages are grouped by page key",
+   "fn": "groupByPage",
+   "args": [
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post#a",
+      "title": "",
+      "text": "",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     },
+     {
+      "id": "BBBB2222",
+      "created": "2026-09-30T08:00:00.000000+00:00",
+      "updated": "2026-10-01T09:00:00.000000+00:00",
+      "uri": "https://example.com/post/",
+      "title": "Example Post",
+      "text": "",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     },
+     {
+      "id": "CCCC3333",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://other.org/x",
+      "title": "",
+      "text": "",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": [
+    {
+     "key": "https://example.com/post",
+     "title": "Example Post",
+     "count": 2
+    },
+    {
+     "key": "https://other.org/x",
+     "title": "other.org/x",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "name": "merge into an empty body makes the region",
+   "fn": "mergeBody",
+   "args": [
+    "",
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note text",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     },
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     },
+     {
+      "id": "CCCC3333",
+      "created": "2026-10-01T08:10:00.000000+00:00",
+      "updated": "2026-10-01T08:10:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "jumps over",
+      "tags": [
+       "reading list"
+      ],
+      "position": 100,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n",
+    "added": 3,
+    "updated": 0,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge puts the region after a heading",
+   "fn": "mergeBody",
+   "args": [
+    "# T\n",
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note text",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "# T\n\n<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n<!-- annotation-inbox:end -->\n",
+    "added": 1,
+    "updated": 0,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge twice changes nothing",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note text",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     },
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     },
+     {
+      "id": "CCCC3333",
+      "created": "2026-10-01T08:10:00.000000+00:00",
+      "updated": "2026-10-01T08:10:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "jumps over",
+      "tags": [
+       "reading list"
+      ],
+      "position": 100,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n",
+    "added": 0,
+    "updated": 0,
+    "unchanged": 3
+   }
+  },
+  {
+   "name": "merge replaces a changed annotation and keeps text outside the markers",
+   "fn": "mergeBody",
+   "args": [
+    "intro\n\n<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n\nmy notes below\n",
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-03T00:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note edited",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "intro\n\n<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-03T00:00:00.000000+00:00 -->\nPage note edited\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n\nmy notes below\n",
+    "added": 0,
+    "updated": 1,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge keeps your edit when the annotation did not change",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\nMy own thought\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\nMy own thought\n\n<!-- annotation-inbox:end -->\n",
+    "added": 0,
+    "updated": 0,
+    "unchanged": 1
+   }
+  },
+  {
+   "name": "merge appends a new highlight at the end of its section",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "CCCC3333",
+      "created": "2026-10-01T08:10:00.000000+00:00",
+      "updated": "2026-10-01T08:10:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "jumps over",
+      "tags": [
+       "reading list"
+      ],
+      "position": 100,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- annotation-inbox:end -->\n",
+    "added": 1,
+    "updated": 0,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge appends the region after your text when there are no markers",
+   "fn": "mergeBody",
+   "args": [
+    "My notes\n",
+    [
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     }
+    ]
+   ],
+   "expected": {
+    "text": "My notes\n\n<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    "added": 1,
+    "updated": 0,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge ignores an older copy",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-09-01T00:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "old",
+      "quote": "old quote",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    "added": 0,
+    "updated": 0,
+    "unchanged": 1
+   }
+  },
+  {
+   "name": "merge moves a page note to highlights when it gets a quote",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-04T00:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note text",
+      "quote": "now quoted",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:AAAA1111 2026-10-04T00:00:00.000000+00:00 -->\n> now quoted\n\nPage note text\n\n<!-- annotation-inbox:end -->\n",
+    "added": 0,
+    "updated": 1,
+    "unchanged": 0
+   }
+  },
+  {
+   "name": "merge counts a block by id even when the marker line has trailing spaces",
+   "fn": "mergeBody",
+   "args": [
+    "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->   \n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    [
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     }
+    ]
+   ],
+   "expected": {
+    "text": "<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n",
+    "added": 0,
+    "updated": 0,
+    "unchanged": 1
+   }
+  },
+  {
+   "name": "new note: front matter, title, source, page notes first, highlights in page order",
+   "fn": "renderNote",
+   "args": [
+    [
+     {
+      "id": "BBBB2222",
+      "created": "2026-10-01T08:05:00.000000+00:00",
+      "updated": "2026-10-01T08:05:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Good point",
+      "quote": "the quick brown fox",
+      "tags": [
+       "Reading List",
+       "2024"
+      ],
+      "position": 300,
+      "link": "https://hyp.is/BBBB2222/example.com/post"
+     },
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "Page note text",
+      "quote": "",
+      "tags": [],
+      "position": null,
+      "link": ""
+     },
+     {
+      "id": "CCCC3333",
+      "created": "2026-10-01T08:10:00.000000+00:00",
+      "updated": "2026-10-01T08:10:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "jumps over",
+      "tags": [
+       "reading list"
+      ],
+      "position": 100,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": "---\nurl: \"https://example.com/post\"\ntitle: \"Example Post\"\ntags:\n  - reading-list\n  - tag-2024\nupdated: 2026-10-01T08:10:00Z\n---\n\n# Example Post\n\nSource: <https://example.com/post>\n\n<!-- annotation-inbox:start -->\n\n## Page notes\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\nPage note text\n\n## Highlights\n\n<!-- ai:CCCC3333 2026-10-01T08:10:00.000000+00:00 -->\n> jumps over\n\n#reading-list\n\n<!-- ai:BBBB2222 2026-10-01T08:05:00.000000+00:00 -->\n> the quick brown fox\n\nGood point\n\n#Reading-List #tag-2024 · [Open on the page](https://hyp.is/BBBB2222/example.com/post)\n\n<!-- annotation-inbox:end -->\n"
+  },
+  {
+   "name": "new note escapes the title and the address",
+   "fn": "renderNote",
+   "args": [
+    [
+     {
+      "id": "EEEE5555",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/a b",
+      "title": "He said \"hi\"\nthere",
+      "text": "",
+      "quote": "q",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ]
+   ],
+   "expected": "---\nurl: \"https://example.com/a b\"\ntitle: \"He said \\\"hi\\\" there\"\ntags: []\nupdated: 2026-10-01T08:00:00Z\n---\n\n# He said \"hi\" there\n\nSource: <https://example.com/a%20b>\n\n<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:EEEE5555 2026-10-01T08:00:00.000000+00:00 -->\n> q\n\n<!-- annotation-inbox:end -->\n"
+  },
+  {
+   "name": "tags are added and never removed",
+   "fn": "mergeTags",
+   "args": [
+    "a, b",
+    [
+     "b",
+     "c"
+    ]
+   ],
+   "expected": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  {
+   "name": "tags list with hash signs",
+   "fn": "mergeTags",
+   "args": [
+    [
+     "#x",
+     "y"
+    ],
+    [
+     "y"
+    ]
+   ],
+   "expected": [
+    "x",
+    "y"
+   ]
+  },
+  {
+   "name": "tags from nothing",
+   "fn": "mergeTags",
+   "args": [
+    null,
+    [
+     "t"
+    ]
+   ],
+   "expected": [
+    "t"
+   ]
+  },
+  {
+   "name": "tags are one tag in any case",
+   "fn": "mergeTags",
+   "args": [
+    [
+     "Read"
+    ],
+    [
+     "read",
+     "new"
+    ]
+   ],
+   "expected": [
+    "Read",
+    "new"
+   ]
+  },
+  {
+   "name": "unique name is the base when free",
+   "fn": "uniqueName",
+   "args": [
+    "A",
+    [],
+    "h"
+   ],
+   "expected": "A"
+  },
+  {
+   "name": "unique name adds 2",
+   "fn": "uniqueName",
+   "args": [
+    "A",
+    [
+     "A"
+    ],
+    "h"
+   ],
+   "expected": "A (2)"
+  },
+  {
+   "name": "unique name adds 3",
+   "fn": "uniqueName",
+   "args": [
+    "A",
+    [
+     "A",
+     "A (2)"
+    ],
+    "h"
+   ],
+   "expected": "A (3)"
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+[
+	{
+		"feature": "sync-now",
+		"caption": "Sync now from the ribbon or the command palette: the notice says how many annotations came in and how many notes were made.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+		"wait": 500,
+		"note": "Reading list.md"
+	},
+	{
+		"feature": "imported-note",
+		"caption": "One note per page: properties, the source link, page notes first, then highlights with comments, tags and a link to the page.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await app.workspace.getLeaf(false).openFile(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'), { state: { mode: 'preview' } }); await new Promise((r) => setTimeout(r, 700)); return 'ok'; })()",
+		"wait": 600
+	},
+	{
+		"feature": "resync",
+		"caption": "After a resync the new highlight is at the end of the list and the text written below the markers is still there.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } window.__aiStub.addLater(); const f = app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'); await app.vault.process(f, (d) => d + '\\n\\nMy own summary: read the three passes in order.\\n'); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); await app.workspace.getLeaf(false).openFile(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'), { state: { mode: 'preview' } }); await new Promise((r) => setTimeout(r, 700)); const pv = document.querySelector('.workspace-leaf.mod-active .markdown-preview-view'); if (pv) pv.scrollTo(0, 1e6); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+		"wait": 600
+	},
+	{
+		"feature": "deleted-notes",
+		"caption": "A note that was deleted is not made again. The notice counts the skipped page.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await app.vault.delete(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md')); window.__aiStub.rows.push({ ...window.__aiStub.rows[0], id: 'stub9abcdefgh', updated: '2026-10-05T10:00:00.123456+00:00' }); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+		"wait": 500,
+		"note": "Reading list.md"
+	},
+	{
+		"feature": "settings",
+		"caption": "Settings: token in secret storage, user name, folder, file name template, sync, forget deleted notes and the status line.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); p.settings.username = 'jane'; app.setting.open(); app.setting.openTabById('annotation-inbox'); await new Promise((r) => setTimeout(r, 900)); return 'ok'; })()",
+		"after": "app.setting.close(); 'ok'",
+		"wait": 800,
+		"zoom": 0.75
+	},
+	{
+		"feature": "annotation-inbox",
+		"caption": "Settings, a first sync, the imported note, a resync with one new highlight, and a deleted note that stays deleted.",
+		"frames": [
+			{
+				"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); p.settings.username = 'jane'; app.setting.open(); app.setting.openTabById('annotation-inbox'); await new Promise((r) => setTimeout(r, 900)); return 'ok'; })()",
+				"hold": 2200
+			},
+			{
+				"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+				"hold": 2200,
+				"note": "Reading list.md"
+			},
+			{
+				"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await app.workspace.getLeaf(false).openFile(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'), { state: { mode: 'preview' } }); await new Promise((r) => setTimeout(r, 700)); return 'ok'; })()",
+				"hold": 2600
+			},
+			{
+				"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } window.__aiStub.addLater(); const f = app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'); await app.vault.process(f, (d) => d + '\\n\\nMy own summary: read the three passes in order.\\n'); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); await app.workspace.getLeaf(false).openFile(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'), { state: { mode: 'preview' } }); await new Promise((r) => setTimeout(r, 700)); const pv = document.querySelector('.workspace-leaf.mod-active .markdown-preview-view'); if (pv) pv.scrollTo(0, 1e6); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+				"hold": 2800
+			},
+			{
+				"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await app.vault.delete(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md')); window.__aiStub.rows.push({ ...window.__aiStub.rows[0], id: 'stub9abcdefgh', updated: '2026-10-05T10:00:00.123456+00:00' }); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); return 'ok'; })()",
+				"hold": 2800,
+				"note": "Reading list.md"
+			}
+		]
+	}
+]
