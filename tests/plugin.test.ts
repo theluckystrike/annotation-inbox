@@ -61,7 +61,7 @@ describe('AnnotationInboxPlugin', () => {
 		const tab = new AnnotationInboxSettingTab(plugin.app as never, plugin);
 		const defs = tab.getSettingDefinitions();
 		const names = defs.map((d) => ('name' in d ? d.name : ''));
-		expect(names).toEqual(['Hypothesis developer token', 'Hypothesis user name', 'Check connection', 'Folder', 'File name', 'Sync now', 'Forget deleted notes', 'Status']);
+		expect(names).toEqual(['Hypothesis developer token', 'Hypothesis user name', 'Check connection', 'Folder', 'File name', 'Note properties', 'Sync now', 'Forget deleted notes', 'Status']);
 		expect(JSON.stringify(defs)).not.toMatch(/\bPro\b|Sponsor/);
 	});
 });
@@ -72,6 +72,21 @@ describe('settings', () => {
 	it('repairs bad saved settings', () => {
 		expect(normalizeSettings({ tokenSecretId: 'Bad Id!', username: 5 as never, folder: 7 as never, template: '' })).toEqual(DEFAULT_SETTINGS);
 		expect(normalizeSettings(null)).toEqual(DEFAULT_SETTINGS);
+	});
+
+	it('cleans the note properties and keeps them empty by default', () => {
+		expect(DEFAULT_SETTINGS.properties).toBe('');
+		expect(normalizeSettings({ properties: 'created: {created}\r\nno colon\nbad name: x\n status : unread ' }).properties).toBe('created: {created}\nstatus: unread');
+		expect(normalizeSettings({ properties: 5 as never }).properties).toBe('');
+	});
+
+	it('shows the note properties as a text area that saves into the settings', async () => {
+		const plugin = await load();
+		const tab = new AnnotationInboxSettingTab(plugin.app as never, plugin);
+		const item = tab.getSettingDefinitions().find((d) => 'name' in d && d.name === 'Note properties');
+		expect(item && 'control' in item ? item.control : null).toMatchObject({ type: 'textarea', key: 'properties' });
+		await tab.setControlValue('properties', 'status: unread\nnot a line');
+		expect(plugin.settings.properties).toBe('status: unread');
 	});
 
 	it('keeps an empty folder as the vault root and cleans a folder path', () => {

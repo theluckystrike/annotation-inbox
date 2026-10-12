@@ -8,6 +8,7 @@ export const NOTES_HEADING = '## Page notes';
 export const HIGHLIGHTS_HEADING = '## Highlights';
 export const DEFAULT_FOLDER = 'Annotation Inbox';
 export const DEFAULT_TEMPLATE = '{title}';
+export const DEFAULT_PROPERTIES = '';
 export const MAX_NAME = 100;
 /** Overlap in ms when a sync starts from the saved cursor, so two annotations with one timestamp cannot be missed. */
 export const CURSOR_OVERLAP_MS = 1000;
@@ -372,17 +373,119 @@ export function mergeBody(body: string, incoming: Annotation[]): MergeResult {
 
 const q = (s: string): string => JSON.stringify(s.replace(/[\r\n]+/g, ' '));
 
-/** Front matter of a new note: url, title, tags, updated. */
-export function renderFrontmatter(f: { url: string; title: string; tags: string[]; updated: string }): string {
-	const tags = f.tags.length === 0 ? ['tags: []'] : ['tags:', ...f.tags.map((t) => `  - ${t}`)];
-	return ['---', `url: ${q(f.url)}`, `title: ${q(f.title)}`, ...tags, `updated: ${f.updated}`, '---', ''].join('\n');
+// ---------------------------------------------------------------- note properties
+
+export const MAX_PROPERTIES = 20;
+export const MAX_PROPERTY_LINE = 200;
+/** Properties that the plugin owns. A line that names one of them is ignored, except "tags", which adds tags. */
+const OWNED_PROPERTIES = ['url', 'title', 'updated'];
+const PROPERTY_NAME = /^[A-Za-z0-9_][A-Za-z0-9_-]{0,39}$/;
+
+export interface PropertyLine {
+	name: string;
+	value: string;
 }
 
-/** Text of a new note for a page. */
-export function renderNote(page: PageGroup): string {
+/** The lines of the properties setting that are "name: value" with a valid name, at most 20, one line each. */
+export function parseProperties(raw: string): PropertyLine[] {
+	const out: PropertyLine[] = [];
+	for (const line of raw.split(/\r?\n/)) {
+		const at = line.indexOf(':');
+		if (at < 0) continue;
+		const name = line.slice(0, at).trim();
+		if (!PROPERTY_NAME.test(name)) continue;
+		out.push({ name, value: line.slice(at + 1).trim().slice(0, MAX_PROPERTY_LINE) });
+		if (out.length >= MAX_PROPERTIES) break;
+	}
+	return out;
+}
+
+/** The setting text with only its valid lines. An empty text means that the notes get the four standard properties only. */
+export function normalizeProperties(raw: string): string {
+	return parseProperties(raw)
+		.map((p) => `${p.name}: ${p.value}`)
+		.join('\n');
+}
+
+/** A time with the tokens YYYY, YY, MM, DD, HH, mm and ss, in UTC. Other text stays. Empty when the time is not valid. */
+export function formatStamp(iso: string, format: string): string {
+	const t = Date.parse(iso.replace(/\.\d+/, ''));
+	if (!Number.isFinite(t)) return '';
+	const d = new Date(t);
+	const two = (n: number): string => String(n).padStart(2, '0');
+	const parts: Record<string, string> = {
+		YYYY: String(d.getUTCFullYear()).padStart(4, '0'),
+		YY: String(d.getUTCFullYear() % 100).padStart(2, '0'),
+		MM: two(d.getUTCMonth() + 1),
+		DD: two(d.getUTCDate()),
+		HH: two(d.getUTCHours()),
+		mm: two(d.getUTCMinutes()),
+		ss: two(d.getUTCSeconds()),
+	};
+	return format.replace(/YYYY|YY|MM|DD|HH|mm|ss/g, (m) => parts[m] ?? m);
+}
+
+const PAGE_TOKEN = /\{(title|url|domain)\}/;
+/** A number is plain only when YAML keeps each digit: no leading zero, no trailing zero after the point, at most 15 digits. */
+const PLAIN_VALUE = /^(?:-?(?:0|[1-9]\d{0,14})(?:\.\d*[1-9])?|true|false|\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?)$/;
+
+/** Fills the tokens {title}, {url}, {domain}, {created} and {created:FORMAT}. A token that is not known gives no text. */
+export function fillProperty(value: string, page: { uri: string; title: string; firstCreated: string }): string {
+	return value.replace(/\{([a-z]+)(?::([^{}]*))?\}/g, (_m, name: string, format?: string) => {
+		if (name === 'title') return page.title;
+		if (name === 'url') return page.uri;
+		if (name === 'domain') return domainOf(page.uri);
+		if (name === 'created') return formatStamp(page.firstCreated, (format ?? 'YYYY-MM-DD').slice(0, 40));
+		return '';
+	});
+}
+
+/**
+ * The extra front matter lines and the extra tags of a new note, from the properties setting. A value is plain YAML
+ * (a date, a number, true or false) only when the setting wrote it without a page token, so a date stays a date
+ * property. Any other value is quoted. A "tags" line adds tags. Lines for url, title and updated are ignored, and so
+ * is a name that comes a second time.
+ */
+export function renderProperties(
+	raw: string,
+	page: { uri: string; title: string; firstCreated: string },
+): { lines: string[]; tags: string[] } {
+	const lines: string[] = [];
+	const tags: string[] = [];
+	const seen = new Set<string>();
+	for (const p of parseProperties(raw)) {
+		const key = p.name.toLowerCase();
+		const text = fillProperty(p.value, page).replace(/\s+/g, ' ').trim();
+		if (key === 'tags') {
+			tags.push(...text.split(/[,\s]+/).map((t) => tagText(t.replace(/^#/, ''))).filter((t) => t !== ''));
+			continue;
+		}
+		if (OWNED_PROPERTIES.includes(key) || seen.has(key)) continue;
+		seen.add(key);
+		if (text === '') lines.push(`${p.name}:`);
+		else lines.push(`${p.name}: ${PLAIN_VALUE.test(text) && !PAGE_TOKEN.test(p.value) ? text : q(text)}`);
+	}
+	return { lines, tags };
+}
+
+/** Front matter of a new note: url, title, tags, updated, then the extra lines. */
+export function renderFrontmatter(f: { url: string; title: string; tags: string[]; updated: string; extra?: string[] }): string {
+	const tags = f.tags.length === 0 ? ['tags: []'] : ['tags:', ...f.tags.map((t) => `  - ${t}`)];
+	return ['---', `url: ${q(f.url)}`, `title: ${q(f.title)}`, ...tags, `updated: ${f.updated}`, ...(f.extra ?? []), '---', ''].join('\n');
+}
+
+/** Text of a new note for a page. The properties setting adds front matter lines and tags to new notes only. */
+export function renderNote(page: PageGroup, properties = ''): string {
 	const anns = orderForNew(page.annotations);
 	const updated = anns.reduce<string | null>((m, a) => laterOf(m, a.updated), null) ?? '';
-	const head = renderFrontmatter({ url: page.uri, title: page.title, tags: pageTags(anns), updated: updatedStamp(updated) });
+	const extra = renderProperties(properties, page);
+	const head = renderFrontmatter({
+		url: page.uri,
+		title: page.title,
+		tags: uniqTags([...pageTags(anns), ...extra.tags]),
+		updated: updatedStamp(updated),
+		extra: extra.lines,
+	});
 	const link = page.uri.replace(/ /g, '%20').replace(/>/g, '%3E');
 	const title = page.title.replace(/[\r\n]+/g, ' ');
 	const base = `# ${title}\n\nSource: <${link}>\n`;
@@ -414,7 +517,11 @@ const run: Record<string, (a: unknown[]) => unknown> = {
 	renderBlock: (a) => renderBlock(a[0] as Annotation),
 	groupByPage: (a) => groupByPage(a[0] as Annotation[]).map((g) => ({ key: g.key, title: g.title, count: g.annotations.length })),
 	mergeBody: (a) => mergeBody(a[0] as string, a[1] as Annotation[]),
-	renderNote: (a) => renderNote(groupByPage(a[0] as Annotation[])[0] as PageGroup),
+	renderNote: (a) => renderNote(groupByPage(a[0] as Annotation[])[0] as PageGroup, a[1] as string | undefined),
+	parseProperties: (a) => parseProperties(a[0] as string),
+	normalizeProperties: (a) => normalizeProperties(a[0] as string),
+	formatStamp: (a) => formatStamp(a[0] as string, a[1] as string),
+	renderProperties: (a) => renderProperties(a[0] as string, a[1] as PageGroup),
 	mergeTags: (a) => mergeTags(a[0], a[1] as string[]),
 	uniqueName: (a) => {
 		const taken = new Set(a[1] as string[]);

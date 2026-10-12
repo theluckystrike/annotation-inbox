@@ -55,7 +55,7 @@ export default class AnnotationInboxPlugin extends Plugin {
 			{
 				app: this.app,
 				client,
-				options: () => ({ user: normalizeUser(this.settings.username), folder: this.settings.folder, template: this.settings.template }),
+				options: () => ({ user: normalizeUser(this.settings.username), folder: this.settings.folder, template: this.settings.template, properties: this.settings.properties }),
 				now: () => Date.now(),
 				sleep: (ms) => new Promise((r) => window.setTimeout(r, ms)),
 				save: () => this.scheduleSave(),

@@ -68,6 +68,7 @@ export interface SyncOptions {
 	user: string;
 	folder: string;
 	template: string;
+	properties: string;
 }
 
 export interface SyncResult {
@@ -254,7 +255,7 @@ export class SyncService {
 		const base = renderFileName(normalizeTemplate(opt.template), page);
 		const name = uniqueName(base, (n) => vault.getAbstractFileByPath(normalizePath(`${folder}/${n}.md`)) !== null, shortHashOf(page));
 		const path = normalizePath(`${folder}/${name}.md`);
-		await vault.create(path, renderNote(page));
+		await vault.create(path, renderNote(page, opt.properties));
 		this.state.pages[page.key] = { path };
 	}
 

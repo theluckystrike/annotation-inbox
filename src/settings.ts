@@ -1,7 +1,7 @@
 /* global __PRO_BUILD__ -- esbuild defines this build flag (src/flags.d.ts) */
 import { PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
 import { sponsorsSettingItems } from './license/github-obsidian';
-import { DEFAULT_FOLDER, DEFAULT_TEMPLATE, normalizeFolder, normalizeTemplate, normalizeUser, renderFileName } from './logic';
+import { DEFAULT_FOLDER, DEFAULT_PROPERTIES, DEFAULT_TEMPLATE, normalizeFolder, normalizeProperties, normalizeTemplate, normalizeUser, renderFileName } from './logic';
 import { PRO_UI } from './pro';
 import type AnnotationInboxPlugin from './main';
 
@@ -12,6 +12,8 @@ export interface AnnotationInboxSettings {
 	username: string;
 	folder: string;
 	template: string;
+	/** Extra front matter lines for new notes, one "name: value" for each line. Empty means the four standard properties only. */
+	properties: string;
 }
 
 export const DEFAULT_SECRET_ID = 'annotation-inbox-hypothesis-token';
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS: AnnotationInboxSettings = {
 	username: '',
 	folder: DEFAULT_FOLDER,
 	template: DEFAULT_TEMPLATE,
+	properties: DEFAULT_PROPERTIES,
 };
 
 /** Fills gaps and drops bad values from saved data, so old or hand-edited data.json never breaks the plugin. */
@@ -33,6 +36,7 @@ export function normalizeSettings(saved: Partial<AnnotationInboxSettings> | null
 		// An empty folder is the vault root. A missing value is the default folder.
 		folder: typeof s.folder === 'string' ? normalizeFolder(s.folder) : DEFAULT_SETTINGS.folder,
 		template: typeof s.template === 'string' ? normalizeTemplate(s.template) : DEFAULT_SETTINGS.template,
+		properties: typeof s.properties === 'string' ? normalizeProperties(s.properties) : DEFAULT_SETTINGS.properties,
 	};
 }
 
@@ -92,6 +96,11 @@ export class AnnotationInboxSettingTab extends PluginSettingTab {
 				name: 'File name',
 				desc: `Template for the note name. Tokens: {title}, {domain}, {date} (first annotation) and {id} (short hash of the address). Now: "${example}". A note name is fixed when the note is made.`,
 				control: { type: 'text', key: 'template', defaultValue: DEFAULT_TEMPLATE, placeholder: DEFAULT_TEMPLATE },
+			},
+			{
+				name: 'Note properties',
+				desc: 'Extra properties for new notes, one "name: value" for each line. Tokens: {title}, {url}, {domain}, {created} (day of the first annotation) and {created:FORMAT} with YYYY, YY, MM, DD, HH, mm and ss, in UTC. A "tags" line adds tags. Existing notes are not changed.',
+				control: { type: 'textarea', key: 'properties', defaultValue: DEFAULT_PROPERTIES, placeholder: 'created: {created}\ntags: article, inbox\nstatus: unread', rows: 4 },
 			},
 			{
 				name: 'Sync now',

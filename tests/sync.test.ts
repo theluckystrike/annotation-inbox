@@ -50,7 +50,7 @@ function rig(rows: Record<string, unknown>[] = []): Rig {
 		const page = sorted.filter((x) => after === null || String(x.updated) > after).slice(0, PAGE_LIMIT);
 		return Promise.resolve({ status: 200, json: { total: page.length, rows: page }, headers: {} });
 	};
-	const opts: SyncOptions = { user: USER, folder: 'Annotation Inbox', template: '{title}' };
+	const opts: SyncOptions = { user: USER, folder: 'Annotation Inbox', template: '{title}', properties: '' };
 	const client = new HypothesisClient({ getToken: () => TOKEN, http });
 	const svc = new SyncService(
 		{ app: app as never, client, options: () => opts, now: () => Date.parse('2026-10-11T00:00:00Z'), sleep: (ms) => (sleeps.push(ms), Promise.resolve()), save: () => void saves.n++ },
@@ -62,6 +62,51 @@ function rig(rows: Record<string, unknown>[] = []): Rig {
 const read = (r: Rig, path: string): Promise<string> => r.app.vault.adapter.read(path);
 
 describe('sync', () => {
+	it('adds the note properties to a new note and never rewrites them on a later sync', async () => {
+		const r = rig([row('AAAA1111', 1), row('BBBB2222', 2)]);
+		r.opts.properties = 'created: {created}\ntags: article\nstatus: unread';
+		await r.svc.run();
+		const path = 'Annotation Inbox/Example Post.md';
+		const first = await read(r, path);
+		expect(first).toContain('created: 2026-10-01\n');
+		expect(first).toContain('status: "unread"');
+		expect(first).toMatch(/tags:\n {2}- article\n/);
+		r.opts.properties = 'created: {created}\nstatus: changed\nextra: yes';
+		r.script.rows.push(row('CCCC3333', 3));
+		const res = await r.svc.run();
+		expect(res).toMatchObject({ created: 0, updated: 1 });
+		const later = await read(r, path);
+		expect(later).toContain('<!-- ai:CCCC3333 ');
+		expect(later).toContain('created: 2026-10-01\n');
+		// processFrontMatter writes the front matter again on a resync, so the quotes may go. The value stays.
+		expect(later).toMatch(/status: "?unread"?\n/);
+		expect(later).not.toMatch(/changed|extra/);
+	});
+
+	it('keeps a property that you edit in the note when the page gets a new annotation', async () => {
+		const r = rig([row('AAAA1111', 1)]);
+		r.opts.properties = 'status: unread';
+		await r.svc.run();
+		const file = r.app.vault.getFileByPath('Annotation Inbox/Example Post.md');
+		await r.app.vault.process(file as never, (d) => d.replace('status: "unread"', 'status: read'));
+		r.script.rows.push(row('BBBB2222', 2));
+		await r.svc.run();
+		const text = await read(r, 'Annotation Inbox/Example Post.md');
+		expect(text).toContain('status: read');
+		expect(text).not.toContain('unread');
+		expect(text).toContain('<!-- ai:BBBB2222 ');
+	});
+
+	it('makes the same note as before when the properties setting is empty', async () => {
+		const a = rig([row('AAAA1111', 1)]);
+		await a.svc.run();
+		const b = rig([row('AAAA1111', 1)]);
+		b.opts.properties = '';
+		await b.svc.run();
+		expect(await read(a, 'Annotation Inbox/Example Post.md')).toBe(await read(b, 'Annotation Inbox/Example Post.md'));
+		expect(await read(a, 'Annotation Inbox/Example Post.md')).not.toContain('created:');
+	});
+
 	it('makes one note per page with front matter and blocks', async () => {
 		const r = rig([row('AAAA1111', 1), row('BBBB2222', 2, { uri: 'https://other.org/x', document: { title: ['Other'] } })]);
 		const res = await r.svc.run();

@@ -1641,6 +1641,480 @@
     "h"
    ],
    "expected": "A (3)"
+  },
+  {
+   "name": "properties setting: valid lines only, the name is trimmed, a bad name or a line without a colon is dropped",
+   "fn": "parseProperties",
+   "args": [
+    "created: {created}\nstatus: unread\nbad name: x\nno colon\n: x\n  rating : 5  "
+   ],
+   "expected": [
+    {
+     "name": "created",
+     "value": "{created}"
+    },
+    {
+     "name": "status",
+     "value": "unread"
+    },
+    {
+     "name": "rating",
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "name": "properties setting: a value keeps its own colons",
+   "fn": "parseProperties",
+   "args": [
+    "link: https://x.org/a"
+   ],
+   "expected": [
+    {
+     "name": "link",
+     "value": "https://x.org/a"
+    }
+   ]
+  },
+  {
+   "name": "properties setting: at most 20 properties",
+   "fn": "parseProperties",
+   "args": [
+    "p1: v\np2: v\np3: v\np4: v\np5: v\np6: v\np7: v\np8: v\np9: v\np10: v\np11: v\np12: v\np13: v\np14: v\np15: v\np16: v\np17: v\np18: v\np19: v\np20: v\np21: v\np22: v\np23: v\np24: v\np25: v"
+   ],
+   "expected": [
+    {
+     "name": "p1",
+     "value": "v"
+    },
+    {
+     "name": "p2",
+     "value": "v"
+    },
+    {
+     "name": "p3",
+     "value": "v"
+    },
+    {
+     "name": "p4",
+     "value": "v"
+    },
+    {
+     "name": "p5",
+     "value": "v"
+    },
+    {
+     "name": "p6",
+     "value": "v"
+    },
+    {
+     "name": "p7",
+     "value": "v"
+    },
+    {
+     "name": "p8",
+     "value": "v"
+    },
+    {
+     "name": "p9",
+     "value": "v"
+    },
+    {
+     "name": "p10",
+     "value": "v"
+    },
+    {
+     "name": "p11",
+     "value": "v"
+    },
+    {
+     "name": "p12",
+     "value": "v"
+    },
+    {
+     "name": "p13",
+     "value": "v"
+    },
+    {
+     "name": "p14",
+     "value": "v"
+    },
+    {
+     "name": "p15",
+     "value": "v"
+    },
+    {
+     "name": "p16",
+     "value": "v"
+    },
+    {
+     "name": "p17",
+     "value": "v"
+    },
+    {
+     "name": "p18",
+     "value": "v"
+    },
+    {
+     "name": "p19",
+     "value": "v"
+    },
+    {
+     "name": "p20",
+     "value": "v"
+    }
+   ]
+  },
+  {
+   "name": "properties setting text is cleaned, CRLF and spaces",
+   "fn": "normalizeProperties",
+   "args": [
+    "created: {created}\r\nfoo\nstatus:   unread "
+   ],
+   "expected": "created: {created}\nstatus: unread"
+  },
+  {
+   "name": "empty properties setting stays empty",
+   "fn": "normalizeProperties",
+   "args": [
+    ""
+   ],
+   "expected": ""
+  },
+  {
+   "name": "date format: day only",
+   "fn": "formatStamp",
+   "args": [
+    "2026-10-01T08:05:09.123456+00:00",
+    "YYYY-MM-DD"
+   ],
+   "expected": "2026-10-01"
+  },
+  {
+   "name": "date format: day and time",
+   "fn": "formatStamp",
+   "args": [
+    "2026-10-01T08:05:09.123456+00:00",
+    "YYYY-MM-DD HH:mm:ss"
+   ],
+   "expected": "2026-10-01 08:05:09"
+  },
+  {
+   "name": "date format: two digit year, month and minute differ by case",
+   "fn": "formatStamp",
+   "args": [
+    "2026-10-01T08:05:09+00:00",
+    "YY/MM/DD MM mm"
+   ],
+   "expected": "26/10/01 10 05"
+  },
+  {
+   "name": "date format: the T and brackets stay",
+   "fn": "formatStamp",
+   "args": [
+    "2026-10-01T08:05:09+00:00",
+    "[[YYYY]]THH:mm"
+   ],
+   "expected": "[[2026]]T08:05"
+  },
+  {
+   "name": "date format: an offset is changed to UTC",
+   "fn": "formatStamp",
+   "args": [
+    "2026-10-01T01:30:00+02:00",
+    "YYYY-MM-DD HH:mm"
+   ],
+   "expected": "2026-09-30 23:30"
+  },
+  {
+   "name": "date format: a text that is no time gives no text",
+   "fn": "formatStamp",
+   "args": [
+    "nope",
+    "YYYY-MM-DD"
+   ],
+   "expected": ""
+  },
+  {
+   "name": "property: created day is a plain date",
+   "fn": "renderProperties",
+   "args": [
+    "created: {created}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "created: 2026-10-01"
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: created with a format and seconds is a plain date time",
+   "fn": "renderProperties",
+   "args": [
+    "created: {created:YYYY-MM-DDTHH:mm:ss}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "created: 2026-10-01T08:05:09"
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: a backlink to the day is quoted",
+   "fn": "renderProperties",
+   "args": [
+    "daily: [[{created}]]",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "daily: \"[[2026-10-01]]\""
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: domain drops www and is quoted",
+   "fn": "renderProperties",
+   "args": [
+    "source: {domain}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "source: \"example.com\""
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: url and title tokens are quoted",
+   "fn": "renderProperties",
+   "args": [
+    "link: {url}\nname: {title}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "link: \"https://www.example.com/post\"",
+     "name: \"Example Post\""
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: a title that looks like a number stays text",
+   "fn": "renderProperties",
+   "args": [
+    "name: {title}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "2026",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "name: \"2026\""
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: plain number, plain boolean, text, a time, an empty value",
+   "fn": "renderProperties",
+   "args": [
+    "rating: 5\ndone: false\nstatus: unread\nwhen: 12:30\nnote:\nday: 2026-10-01",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "rating: 5",
+     "done: false",
+     "status: \"unread\"",
+     "when: \"12:30\"",
+     "note:",
+     "day: 2026-10-01"
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: a number with a leading zero, a trailing zero or more than 15 digits stays text, so no digit is lost",
+   "fn": "renderProperties",
+   "args": [
+    "month: {created:MM}\ntime: {created:HHmm}\nzip: 01234\nversion: 1.10\nbig: 1234567890123456789\nzero: 0\nhalf: -0.5\nyear: {created:YYYY}",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-01-05T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "month: \"01\"",
+     "time: \"0805\"",
+     "zip: \"01234\"",
+     "version: \"1.10\"",
+     "big: \"1234567890123456789\"",
+     "zero: 0",
+     "half: -0.5",
+     "year: 2026"
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: a token that is not known gives no text",
+   "fn": "renderProperties",
+   "args": [
+    "x: a{nope}b",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "x: \"ab\""
+    ],
+    "tags": []
+   }
+  },
+  {
+   "name": "property: tags line adds tags, owned names and repeated names are ignored",
+   "fn": "renderProperties",
+   "args": [
+    "tags: Article, #inbox 2026\nurl: x\nTitle: y\nupdated: z\nstatus: a\nSTATUS: b\nstatus: c\ntags:",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [
+     "status: \"a\""
+    ],
+    "tags": [
+     "Article",
+     "inbox",
+     "tag-2026"
+    ]
+   }
+  },
+  {
+   "name": "property: no setting gives no lines",
+   "fn": "renderProperties",
+   "args": [
+    "",
+    {
+     "uri": "https://www.example.com/post",
+     "title": "Example Post",
+     "firstCreated": "2026-10-01T08:05:09.123456+00:00"
+    }
+   ],
+   "expected": {
+    "lines": [],
+    "tags": []
+   }
+  },
+  {
+   "name": "new note with the properties setting: created day, one tag and a text property after the standard four",
+   "fn": "renderNote",
+   "args": [
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "q",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ],
+    "created: {created}\ntags: article\nstatus: unread"
+   ],
+   "expected": "---\nurl: \"https://example.com/post\"\ntitle: \"Example Post\"\ntags:\n  - article\nupdated: 2026-10-01T08:00:00Z\ncreated: 2026-10-01\nstatus: \"unread\"\n---\n\n# Example Post\n\nSource: <https://example.com/post>\n\n<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\n> q\n\n<!-- annotation-inbox:end -->\n"
+  },
+  {
+   "name": "new note with the properties setting: extra tags join the page tags, each tag once",
+   "fn": "renderNote",
+   "args": [
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "q",
+      "tags": [
+       "Reading List"
+      ],
+      "position": null,
+      "link": ""
+     }
+    ],
+    "tags: reading-list, new"
+   ],
+   "expected": "---\nurl: \"https://example.com/post\"\ntitle: \"Example Post\"\ntags:\n  - Reading-List\n  - new\nupdated: 2026-10-01T08:00:00Z\n---\n\n# Example Post\n\nSource: <https://example.com/post>\n\n<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\n> q\n\n#Reading-List\n\n<!-- annotation-inbox:end -->\n"
+  },
+  {
+   "name": "new note with an empty properties setting is the same as without one",
+   "fn": "renderNote",
+   "args": [
+    [
+     {
+      "id": "AAAA1111",
+      "created": "2026-10-01T08:00:00.000000+00:00",
+      "updated": "2026-10-01T08:00:00.000000+00:00",
+      "uri": "https://example.com/post",
+      "title": "Example Post",
+      "text": "",
+      "quote": "q",
+      "tags": [],
+      "position": null,
+      "link": ""
+     }
+    ],
+    ""
+   ],
+   "expected": "---\nurl: \"https://example.com/post\"\ntitle: \"Example Post\"\ntags: []\nupdated: 2026-10-01T08:00:00Z\n---\n\n# Example Post\n\nSource: <https://example.com/post>\n\n<!-- annotation-inbox:start -->\n\n## Highlights\n\n<!-- ai:AAAA1111 2026-10-01T08:00:00.000000+00:00 -->\n> q\n\n<!-- annotation-inbox:end -->\n"
   }
  ]
 }

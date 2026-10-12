@@ -28,10 +28,17 @@
 	{
 		"feature": "settings",
 		"caption": "Settings: token in secret storage, user name, folder, file name template, sync, forget deleted notes and the status line.",
-		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); p.settings.username = 'jane'; app.setting.open(); app.setting.openTabById('annotation-inbox'); await new Promise((r) => setTimeout(r, 900)); return 'ok'; })()",
-		"after": "app.setting.close(); 'ok'",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n, i) => { if (i < ns.length - 1) n.remove(); }); p.settings.username = 'jane'; p.settings.properties = 'created: {created}\\ndaily: [[{created}]]\\ntags: article, inbox\\nstatus: unread'; app.setting.open(); app.setting.openTabById('annotation-inbox'); await new Promise((r) => setTimeout(r, 900)); return 'ok'; })()",
+		"after": "app.plugins.plugins['annotation-inbox'].settings.properties = ''; app.setting.close(); 'ok'",
 		"wait": 800,
-		"zoom": 0.75
+		"zoom": 0.65
+	},
+	{
+		"feature": "note-properties",
+		"caption": "A new note with the properties from the setting: a created date, a link to the daily note, an extra tag and a status.",
+		"eval": "(async () => { const p = app.plugins.plugins['annotation-inbox']; document.querySelectorAll('.modal-container .modal-close-button').forEach((b) => b.click()); try { app.setting.close(); } catch (e) {} if (!window.__aiStub) { const src = await app.vault.adapter.read('Annotation Inbox/stub-hypothesis.js'); new Function('app', 'return ' + src)(app); } await window.__aiStub.reset(); p.settings.properties = 'created: {created}\\ndaily: [[{created}]]\\ntags: article, inbox\\nstatus: unread'; await p.syncNow(); await new Promise((r) => setTimeout(r, 700)); const ns = document.querySelectorAll('.notice-container .notice'); ns.forEach((n) => n.remove()); await app.workspace.getLeaf(false).openFile(app.vault.getFileByPath('Annotation Inbox/How to read a paper.md'), { state: { mode: 'preview' } }); await new Promise((r) => setTimeout(r, 900)); return 'ok'; })()",
+		"after": "app.plugins.plugins['annotation-inbox'].settings.properties = ''; 'ok'",
+		"wait": 600
 	},
 	{
 		"feature": "annotation-inbox",
