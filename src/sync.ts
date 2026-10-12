@@ -5,6 +5,7 @@ import { normalizePath, type App, type TFile } from 'obsidian';
 import type { HypothesisClient } from './client';
 import {
 	CURSOR_OVERLAP_MS,
+	START_MARK,
 	laterOf,
 	mergeBody,
 	mergeTags,
@@ -80,6 +81,8 @@ export interface SyncResult {
 	updated: number;
 	unchanged: number;
 	forgotten: number;
+	/** Pages whose note could not be written. The cursor stays, so the next run tries them again. */
+	failed: number;
 	more: boolean;
 }
 
@@ -101,7 +104,7 @@ interface Fetched {
 	error: string | null;
 }
 
-const blank = (message: string, ok = false): SyncResult => ({ ok, message, fetched: 0, skipped: 0, created: 0, updated: 0, unchanged: 0, forgotten: 0, more: false });
+const blank = (message: string, ok = false): SyncResult => ({ ok, message, fetched: 0, skipped: 0, created: 0, updated: 0, unchanged: 0, forgotten: 0, failed: 0, more: false });
 
 export class SyncService {
 	deps: SyncDeps;
@@ -204,14 +207,22 @@ export class SyncService {
 		res.fetched = got.anns.length;
 		res.skipped = got.skipped;
 		res.more = got.more;
+		// One note that cannot be written (a bad front matter, a name that is taken) must not stop the other pages.
+		let writeError: string | null = null;
 		for (const page of groupByPage(got.anns)) {
-			const how = await this.applyPage(page, opt);
-			res[how]++;
+			try {
+				res[await this.applyPage(page, opt)]++;
+			} catch (e) {
+				res.failed++;
+				writeError ??= `Could not write the note for ${page.title}: ${e instanceof Error ? e.message : 'unknown error'}`;
+			}
 		}
-		if (got.last !== null) this.state.cursor = laterOf(this.state.cursor, got.last);
-		if (got.error === null) this.state.lastSync = new Date(this.deps.now()).toISOString();
+		if (writeError !== null) res.ok = false;
+		if (got.last !== null && writeError === null) this.state.cursor = laterOf(this.state.cursor, got.last);
+		if (res.ok) this.state.lastSync = new Date(this.deps.now()).toISOString();
 		this.deps.save();
-		res.message = got.error === null ? summary(res) : `${got.error} ${summary(res)}`;
+		const errors = [got.error, writeError].filter((t): t is string => t !== null);
+		res.message = [...errors, summary(res)].join(' ');
 		return res;
 	}
 
@@ -220,7 +231,7 @@ export class SyncService {
 		const rec = this.state.pages[page.key];
 		const file = rec ? this.deps.app.vault.getFileByPath(rec.path) : null;
 		if (rec && !file) {
-			const moved = this.findByUrl(page.key);
+			const moved = await this.findByUrl(page.key);
 			if (!moved) {
 				delete this.state.pages[page.key];
 				this.state.deleted.push(page.key);
@@ -234,12 +245,15 @@ export class SyncService {
 		return 'created';
 	}
 
-	/** A note whose "url" property is this page, for a note that moved while Obsidian was closed. */
-	private findByUrl(key: string): TFile | null {
+	/**
+	 * A note of ours whose "url" property is this page, for a note that moved while Obsidian was closed. A note
+	 * without the start marker is not ours (a web clipping, for example), so it is not used.
+	 */
+	private async findByUrl(key: string): Promise<TFile | null> {
 		const { vault, metadataCache } = this.deps.app;
 		for (const f of vault.getMarkdownFiles()) {
 			const url: unknown = metadataCache.getFileCache(f)?.frontmatter?.url;
-			if (typeof url === 'string' && pageKey(url) === key) return f;
+			if (typeof url === 'string' && pageKey(url) === key && (await vault.cachedRead(f)).includes(START_MARK)) return f;
 		}
 		return null;
 	}
@@ -290,6 +304,7 @@ function lastUpdated(rows: unknown[]): string | null {
 /** One sentence for the notice after a sync. */
 export function summary(r: SyncResult): string {
 	const parts = [`${r.created} new ${r.created === 1 ? 'note' : 'notes'}`, `${r.updated} updated`];
+	if (r.failed > 0) parts.push(`${r.failed} not written`);
 	if (r.forgotten > 0) parts.push(`${r.forgotten} skipped because you deleted ${r.forgotten === 1 ? 'it' : 'them'}`);
 	const head = `Imported ${r.fetched} ${r.fetched === 1 ? 'annotation' : 'annotations'}: ${parts.join(', ')}.`;
 	return r.more ? `${head} There are more. Run Sync now again.` : head;

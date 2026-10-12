@@ -279,6 +279,44 @@ describe('sync', () => {
 		expect(r.calls).toHaveLength(0);
 	});
 
+	it('writes the other pages when one note cannot be written, and keeps the cursor for a retry', async () => {
+		const r = rig([row('AAAA1111', 1, { uri: 'https://bad.org/x', document: { title: ['Bad'] } }), row('BBBB2222', 2)]);
+		const real = r.app.vault.create.bind(r.app.vault);
+		const spy = vi.spyOn(r.app.vault, 'create').mockImplementation((path, data) => (path.includes('Bad') ? Promise.reject(new Error('File already exists.')) : real(path, data)));
+		const res = await r.svc.run();
+		expect(res).toMatchObject({ ok: false, created: 1, failed: 1 });
+		expect(res.message).toContain('File already exists.');
+		expect(r.app.vault.getFileByPath('Annotation Inbox/Example Post.md')).not.toBeNull();
+		expect(r.svc.state.cursor).toBeNull();
+		spy.mockRestore();
+		const again = await r.svc.run();
+		expect(again).toMatchObject({ ok: true, created: 1, unchanged: 1, failed: 0 });
+		expect(r.svc.state.cursor).toBe(ts(2));
+	});
+
+	it('does not write into a note of yours that only has the same url property', async () => {
+		const r = rig([row('AAAA1111', 1)]);
+		await r.svc.run();
+		const clip = '---\nurl: https://example.com/post\n---\nMy clipping.\n';
+		await r.app.vault.createFolder('Clippings');
+		await r.app.vault.create('Clippings/Clip.md', clip);
+		await r.app.vault.delete(r.app.vault.getFileByPath('Annotation Inbox/Example Post.md') as never);
+		r.script.rows.push(row('CCCC3333', 5));
+		const res = await r.svc.run();
+		expect(res).toMatchObject({ created: 0, updated: 0, forgotten: 1 });
+		expect(await read(r, 'Clippings/Clip.md')).toBe(clip);
+	});
+
+	it('keeps the whole comment when it has a line that looks like a section heading', async () => {
+		const r = rig([row('AAAA1111', 1, { text: 'before\n## Highlights\nafter the heading' })]);
+		await r.svc.run();
+		r.script.rows.push(row('CCCC3333', 5));
+		await r.svc.run();
+		const text = await read(r, 'Annotation Inbox/Example Post.md');
+		expect(text).toContain('after the heading');
+		expect(text).toContain('ai:CCCC3333');
+	});
+
 	it('does not start a second sync while one runs', async () => {
 		const r = rig([row('AAAA1111', 1)]);
 		const first = r.svc.run();

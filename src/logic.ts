@@ -284,12 +284,21 @@ export function pageTags(anns: Annotation[]): string[] {
 }
 
 const noComment = (s: string): string => s.replace(/<!--/g, '&lt;!--').replace(/-->/g, '--&gt;');
+/**
+ * A comment line that is the same as a section heading would end the block in parseRegion, and the next merge would
+ * drop the lines under it. A second space after "##" shows the same heading but does not match.
+ */
+const noHeading = (s: string): string =>
+	s
+		.split('\n')
+		.map((l) => (l.trimEnd() === NOTES_HEADING || l.trimEnd() === HIGHLIGHTS_HEADING ? l.replace(/^## /, '##  ') : l))
+		.join('\n');
 
 /** One annotation as a block. The first line is the marker that the next sync uses to find the block again. */
 export function renderBlock(a: Annotation): string {
 	const lines = [`<!-- ai:${a.id} ${a.updated} -->`];
 	if (a.quote.trim() !== '') lines.push(...noComment(a.quote.trim()).split(/\r?\n/).map((l) => `> ${l}`.trimEnd()), '');
-	if (a.text.trim() !== '') lines.push(noComment(a.text.trim()).replace(/\r\n/g, '\n'), '');
+	if (a.text.trim() !== '') lines.push(noHeading(noComment(a.text.trim()).replace(/\r\n/g, '\n')), '');
 	const tags = uniqTags(a.tags.map(tagText)).map((t) => `#${t}`);
 	const foot = [tags.join(' '), a.link === '' ? '' : `[Open on the page](${a.link})`].filter((p) => p !== '');
 	if (foot.length > 0) lines.push(foot.join(' · '));
