@@ -4,6 +4,7 @@ import { sponsorsSettingItems } from './license/github-obsidian';
 import { DEFAULT_FOLDER, DEFAULT_PROPERTIES, DEFAULT_TEMPLATE, normalizeFolder, normalizeProperties, normalizeTemplate, normalizeUser, renderFileName } from './logic';
 import { PRO_UI } from './pro';
 import type AnnotationInboxPlugin from './main';
+import { helloSettingItems } from './hello/settings';
 
 export interface AnnotationInboxSettings {
 	/** Name of the secret in Obsidian secret storage. The token itself is never in data.json. */
@@ -63,6 +64,11 @@ export class AnnotationInboxSettingTab extends PluginSettingTab {
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
+		// The product rows, then the "More from NoteMods" card (packages/hello).
+		return [...this.productSettingDefinitions(), ...helloSettingItems()];
+	}
+
+	productSettingDefinitions(): SettingDefinitionItem[] {
 		const example = renderFileName(this.plugin.settings.template, SAMPLE);
 		return [
 			...(__PRO_BUILD__ && this.plugin.pro ? sponsorsSettingItems(this.plugin.pro, PRO_UI) : []),

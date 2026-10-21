@@ -37,7 +37,7 @@ export interface SyncState {
 	/** The user the cursor belongs to. A different user starts over. */
 	cursorUser: string;
 	/** Page key to the note that holds it. */
-	pages: Record<string, { path: string }>;
+	pages: Record<string, { path: string; metadataPending?: boolean }>;
 	/** Page keys of notes that you deleted. They are not made again. */
 	deleted: string[];
 	lastSync: string | null;
@@ -52,7 +52,10 @@ export function normalizeState(saved: unknown): SyncState {
 	if (typeof s.pages === 'object' && s.pages !== null) {
 		for (const [k, v] of Object.entries(s.pages as Record<string, unknown>)) {
 			const path = typeof v === 'object' && v !== null ? (v as { path?: unknown }).path : null;
-			if (typeof path === 'string' && path !== '') pages[k] = { path };
+			if (typeof path === 'string' && path !== '') {
+				pages[k] = { path };
+				if ((v as { metadataPending?: unknown }).metadataPending === true) pages[k].metadataPending = true;
+			}
 		}
 	}
 	const deleted = Array.isArray(s.deleted) ? (s.deleted as unknown[]).filter((d): d is string => typeof d === 'string').slice(-MAX_DELETED) : [];
@@ -91,7 +94,7 @@ export interface SyncDeps {
 	client: HypothesisClient;
 	options: () => SyncOptions;
 	now: () => number;
-	sleep: (ms: number) => Promise<void>;
+	sleep: (ms: number, signal?: AbortSignal) => Promise<void>;
 	save: () => void;
 }
 
@@ -104,16 +107,42 @@ interface Fetched {
 	error: string | null;
 }
 
+class SyncCancelled extends Error {
+	constructor() { super('Sync stopped because the plugin was disabled. Completed notes are kept; sync again after enabling.'); }
+}
+
 const blank = (message: string, ok = false): SyncResult => ({ ok, message, fetched: 0, skipped: 0, created: 0, updated: 0, unchanged: 0, forgotten: 0, failed: 0, more: false });
 
 export class SyncService {
 	deps: SyncDeps;
 	state: SyncState;
 	running = false;
+	private readonly lifecycle = new AbortController();
+	private idle: Promise<void> = Promise.resolve();
+
+	/** Includes the final recovery save callback of the current run. */
+	whenIdle(): Promise<void> { return this.idle; }
 
 	constructor(deps: SyncDeps, state: SyncState) {
 		this.deps = deps;
 		this.state = state;
+	}
+
+	/** Stop this instance permanently. A request or write already in progress may settle. */
+	dispose(): void { this.lifecycle.abort(); }
+
+	private checkActive(): void {
+		if (this.lifecycle.signal.aborted) throw new SyncCancelled();
+	}
+
+	private async wait(ms: number): Promise<void> {
+		this.checkActive();
+		const signal = this.lifecycle.signal;
+		let cancel = (): void => undefined;
+		const cancelled = new Promise<void>((resolve) => { cancel = resolve; signal.addEventListener('abort', cancel, { once: true }); });
+		try { await Promise.race([this.deps.sleep(ms, signal), cancelled]); }
+		finally { signal.removeEventListener('abort', cancel); }
+		this.checkActive();
 	}
 
 	/** A note of ours was deleted: remember the page so that it is not made again. */
@@ -147,8 +176,10 @@ export class SyncService {
 		const out: Fetched = { anns: [], rows: 0, skipped: 0, last: null, more: false, error: null };
 		let after = from;
 		for (let i = 0; i < MAX_BATCHES; i++) {
-			if (i > 0) await this.deps.sleep(MIN_GAP_MS);
+			if (i > 0) await this.wait(MIN_GAP_MS);
+			this.checkActive();
 			const r = await this.searchWithRetry(user, after);
+			this.checkActive();
 			if (!r.ok) {
 				out.error = r.message;
 				return out;
@@ -173,26 +204,33 @@ export class SyncService {
 
 	private async searchWithRetry(user: string, after: string | null): Promise<{ ok: true; rows: unknown[] } | { ok: false; message: string }> {
 		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+			this.checkActive();
 			const r = await this.deps.client.search(user, after, PAGE_LIMIT);
+			this.checkActive();
 			if (r.ok) return { ok: true, rows: r.data.rows };
 			if (r.kind !== 'rate' || attempt === MAX_RETRIES) return { ok: false, message: r.message };
-			await this.deps.sleep(r.waitMs);
+			await this.wait(r.waitMs);
 		}
 		return { ok: false, message: 'Hypothesis asked us to slow down. Try again later.' };
 	}
 
 	/** Runs one sync. Never throws: a failure comes back in the result and the cursor stays where the last full batch ended. */
 	async run(): Promise<SyncResult> {
+		if (this.lifecycle.signal.aborted) return blank(new SyncCancelled().message);
 		if (this.running) return blank('A sync is already running.');
 		const opt = this.deps.options();
 		if (opt.user === '') return blank('Add your Hypothesis user name in the plugin settings.');
 		this.running = true;
+		let settled!: () => void;
+		this.idle = new Promise<void>((resolve) => { settled = resolve; });
 		try {
 			return await this.runInner(opt);
 		} catch (e) {
 			return blank(`Sync stopped: ${e instanceof Error ? e.message : 'unknown error'}.`);
 		} finally {
 			this.running = false;
+			// Include a write that settled after unload in the persisted page mapping.
+			try { this.deps.save(); } finally { settled(); }
 		}
 	}
 
@@ -203,6 +241,7 @@ export class SyncService {
 		}
 		const from = this.state.cursor === null ? null : rewindCursor(this.state.cursor, CURSOR_OVERLAP_MS);
 		const got = await this.fetchAll(opt.user, from);
+		this.checkActive();
 		const res = blank('', got.error === null);
 		res.fetched = got.anns.length;
 		res.skipped = got.skipped;
@@ -211,11 +250,18 @@ export class SyncService {
 		let writeError: string | null = null;
 		for (const page of groupByPage(got.anns)) {
 			try {
+				this.checkActive();
 				res[await this.applyPage(page, opt)]++;
 			} catch (e) {
+				if (e instanceof SyncCancelled || this.lifecycle.signal.aborted) break;
 				res.failed++;
 				writeError ??= `Could not write the note for ${page.title}: ${e instanceof Error ? e.message : 'unknown error'}`;
 			}
+		}
+		if (this.lifecycle.signal.aborted) {
+			res.ok = false;
+			res.message = `${new SyncCancelled().message} ${summary(res)}`;
+			return res;
 		}
 		if (writeError !== null) res.ok = false;
 		if (got.last !== null && writeError === null) this.state.cursor = laterOf(this.state.cursor, got.last);
@@ -232,6 +278,7 @@ export class SyncService {
 		const file = rec ? this.deps.app.vault.getFileByPath(rec.path) : null;
 		if (rec && !file) {
 			const moved = await this.findByUrl(page.key);
+			this.checkActive();
 			if (!moved) {
 				delete this.state.pages[page.key];
 				this.state.deleted.push(page.key);
@@ -253,7 +300,12 @@ export class SyncService {
 		const { vault, metadataCache } = this.deps.app;
 		for (const f of vault.getMarkdownFiles()) {
 			const url: unknown = metadataCache.getFileCache(f)?.frontmatter?.url;
-			if (typeof url === 'string' && pageKey(url) === key && (await vault.cachedRead(f)).includes(START_MARK)) return f;
+			this.checkActive();
+			if (typeof url === 'string' && pageKey(url) === key) {
+				const text = await vault.cachedRead(f);
+				this.checkActive();
+				if (text.includes(START_MARK)) return f;
+			}
 		}
 		return null;
 	}
@@ -264,29 +316,43 @@ export class SyncService {
 		let made = '';
 		for (const part of folder === '' ? [] : folder.split('/')) {
 			made = made === '' ? part : `${made}/${part}`;
+			this.checkActive();
 			if (!vault.getFolderByPath(made)) await vault.createFolder(made).catch(() => undefined);
+			this.checkActive();
 		}
 		const base = renderFileName(normalizeTemplate(opt.template), page);
 		const name = uniqueName(base, (n) => vault.getAbstractFileByPath(normalizePath(`${folder}/${n}.md`)) !== null, shortHashOf(page));
 		const path = normalizePath(`${folder}/${name}.md`);
+		this.checkActive();
 		await vault.create(path, renderNote(page, opt.properties));
 		this.state.pages[page.key] = { path };
 	}
 
 	private async updateNote(file: TFile, page: PageGroup): Promise<'updated' | 'unchanged'> {
 		const { vault, fileManager } = this.deps.app;
+		this.checkActive();
 		const cur = await vault.cachedRead(file);
+		this.checkActive();
 		const merged = mergeBody(cur, page.annotations);
-		if (merged.text === cur) return 'unchanged';
-		await vault.process(file, (data) => mergeBody(data, page.annotations).text);
+		const rec = this.state.pages[page.key];
+		if (merged.text === cur && !rec?.metadataPending) return 'unchanged';
+		if (merged.text !== cur) {
+			this.checkActive();
+			await vault.process(file, (data) => mergeBody(data, page.annotations).text);
+			// A disable can split the body and metadata writes. Keep the repair across reload.
+			if (rec) rec.metadataPending = true;
+		}
+		this.checkActive();
 		const newest = page.annotations.reduce<string | null>((m, a) => laterOf(m, a.updated), null) ?? '';
 		const tags = pageTags(page.annotations);
+		this.checkActive();
 		await fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 			const old = typeof fm.updated === 'string' ? fm.updated : '';
 			const stamp = updatedStamp(newest);
 			if (stamp > old) fm.updated = stamp;
 			if (tags.length > 0) fm.tags = mergeTags(fm.tags, tags);
 		});
+		if (rec) delete rec.metadataPending;
 		return 'updated';
 	}
 }

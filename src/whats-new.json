@@ -1,0 +1,29 @@
+{
+	"id": "annotation-inbox",
+	"name": "Annotation Inbox",
+	"version": "1.2.0",
+	"changes": [
+		"New Send feedback command. It opens a page where you can report a problem or suggest an idea.",
+		"When you turn the plugin off, it stops syncing and stops writing to your vault.",
+		"When you turn it back on, it waits for its last save to finish before it reads its sync data."
+	],
+	"tip": "You can keep your own text outside the marker comments; the plugin never touches it.",
+	"thanks": "Hi, I am Michael, a solo developer in Poland. Annotation Inbox is one of over 100 small plugins that I make. Thank you for using it in your research notes.",
+	"related": [
+		{
+			"id": "annotator-json-export",
+			"name": "Annotator JSON Export",
+			"blurb": "Keep saved quotes, comments and tags in a local JSON archive."
+		},
+		{
+			"id": "research-source-review",
+			"name": "Research Source Review",
+			"blurb": "Check whether a source passage changed after you approved it for a note."
+		},
+		{
+			"id": "pdf-reply-export",
+			"name": "PDF Reply Export",
+			"blurb": "Save PDF comments and replies in notes."
+		}
+	]
+}

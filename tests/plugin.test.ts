@@ -61,7 +61,9 @@ describe('AnnotationInboxPlugin', () => {
 		const tab = new AnnotationInboxSettingTab(plugin.app as never, plugin);
 		const defs = tab.getSettingDefinitions();
 		const names = defs.map((d) => ('name' in d ? d.name : ''));
-		expect(names).toEqual(['Hypothesis developer token', 'Hypothesis user name', 'Check connection', 'Folder', 'File name', 'Note properties', 'Sync now', 'Forget deleted notes', 'Status']);
+		expect(names).toEqual(['Hypothesis developer token', 'Hypothesis user name', 'Check connection', 'Folder', 'File name', 'Note properties', 'Sync now', 'Forget deleted notes', 'Status', '']);
+		// The last item is the "More from NoteMods" group of packages/hello, which has a heading and no name.
+		expect(defs.at(-1)).toMatchObject({ type: 'group', heading: 'More from NoteMods' });
 		expect(JSON.stringify(defs)).not.toMatch(/\bPro\b|Sponsor/);
 	});
 });

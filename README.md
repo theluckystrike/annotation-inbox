@@ -12,13 +12,13 @@ Unofficial. Not made by or affiliated with Hypothesis. Hypothesis is a trademark
 
 Select the highlighter ribbon icon, or run "Annotation Inbox: Sync now". The plugin asks Hypothesis for your annotations, oldest change first, in pages of 200, with one second between requests. A notice then tells you what happened, for example "Imported 7 annotations: 3 new notes, 0 updated."
 
-One run reads up to 10,000 annotations. If your account is larger, the notice says so. Run Sync now again to continue from the saved cursor.
+Each run reads up to 10,000 annotations. Run Sync now again to continue larger accounts.
 
 <img src="https://raw.githubusercontent.com/theluckystrike/annotation-inbox/HEAD/docs/sync-now.png" alt="A notice that says Imported 7 annotations: 3 new notes, 0 updated" width="720">
 
 ### One note per page
 
-Each annotated page gets one note in the folder that you choose, unless you deleted the note for that page. The properties hold `url`, `title`, `tags` and `updated`. The tags are the tags of the annotations on that page, in the form that Obsidian accepts: `Reading List` becomes `Reading-List`, and `2026` becomes `tag-2026`.
+Each annotated page gets one note in the folder that you choose. The tags are the tags of the annotations on that page, in the form that Obsidian accepts: `Reading List` becomes `Reading-List`, and `2026` becomes `tag-2026`.
 
 Under the title, page notes come first, then highlights in page order when the note is made. Later highlights go at the end of the list. Each highlight is a quote, then your comment, then its tags and a link that opens the highlight on the page. Each block starts with a comment line, `<!-- ai:ID time -->`, that the next sync uses to find the block. Reading view hides it.
 
@@ -46,7 +46,7 @@ The notice says how many pages it skipped, for example "1 skipped because you de
 
 ### Folder and file name
 
-Choose the folder in the settings (empty means the vault root). The file name comes from a template with four tokens: `{title}`, `{domain}`, `{date}` (the day of the first annotation on the page) and `{id}` (eight characters from the address). The default is `{title}`. Characters that break file names or links (`\ / : * ? " < > | # ^ [ ]`) are replaced, and names are cut at 100 characters. When two pages have one title, the second note is `Title (2)`. A new template does not rename old notes.
+Choose the folder in the settings. The file name comes from a template with four tokens: `{title}`, `{domain}`, `{date}` (the day of the first annotation on the page) and `{id}` (eight characters from the address). The default is `{title}`. Characters that break file names or links (`\ / : * ? " < > | # ^ [ ]`) are replaced, and names are cut at 100 characters. When two pages have one title, the second note is `Title (2)`. A new template does not rename old notes.
 
 <img src="https://raw.githubusercontent.com/theluckystrike/annotation-inbox/HEAD/docs/settings.png" alt="The settings: token, user name, check connection, folder, file name with an example, note properties, sync now, forget deleted notes and the status line" width="720">
 
@@ -72,7 +72,7 @@ The tokens are `{title}`, `{url}`, `{domain}`, `{created}` (the day of the oldes
 
 ## Install
 
-When Annotation Inbox is listed in the community directory, open Settings, then Community plugins, then Browse. Search for "Annotation Inbox", then select Install and Enable.
+Open Settings, then Community plugins, then Browse. Search for "Annotation Inbox", then select Install and Enable.
 
 To install by hand, download `main.js`, `manifest.json` and `styles.css` from the latest release. Put the three files in `<vault>/.obsidian/plugins/annotation-inbox/`. Reload the community plugins, then turn on Annotation Inbox.
 
@@ -83,37 +83,32 @@ To install by hand, download `main.js`, `manifest.json` and `styles.css` from th
 3. Select Check connection. Hypothesis answers with your account name, and the plugin fills in the user name. You can also type it, for example `jane` for `acct:jane@hypothes.is`.
 4. Run Sync now.
 
-The plugin reads your own annotations, public and private. Replies and hidden annotations are skipped. It never creates, changes or deletes an annotation on Hypothesis.
+It reads public and private annotations. Replies and hidden annotations are skipped. It never creates, changes or deletes an annotation on Hypothesis.
 
 If a sync stops because of an error, the notes that were made stay, and the cursor moves only as far as the annotations that were read. If one note cannot be written (for example, bad YAML), the other pages are written and the next sync tries that note again. HTTP 429 (too many requests) makes the plugin wait for the Retry-After time (30 seconds when there is none) and try again, at most two times. Hypothesis does not publish a rate limit for this call.
 
 ## Settings
 
+After a minor or major update, this plugin opens one What's new tab in the background. The tab and settings card suggest other NoteMods plugins and Zovo Chat and link to notemods.com for feedback ([privacy](https://notemods.com/privacy/)). The tab sends no data. Turn the tab off in Settings.
+
 | Setting | What it does |
 |---|---|
-| Hypothesis developer token | Kept in Obsidian secret storage, not in a note and not in `data.json`. |
+| Hypothesis developer token | Kept in Obsidian secret storage. |
 | Hypothesis user name | Your account name. 3 to 30 characters: letters, digits, `.` or `_`. |
 | Check connection | Sends one request and fills an empty user name. |
 | Folder | Where the notes go. Made when needed. Empty means the vault root. |
 | File name | The template for the note name. |
 | Note properties | Extra properties for new notes, one `name: value` on each line. Empty by default. |
-| Sync now | Same as the command and the ribbon button. |
 | Forget deleted notes | Clears the list of notes that are not made again. |
 | Status | Time of the last sync, the number of notes, the number of deleted notes. |
 
 ## FAQ
 
-### Is this made by Hypothesis?
-
-No. It is an unofficial plugin by an independent developer.
+Disabling stops new operations. Notes stay. Re-enabling waits for pending writes and saves, retrying a failed final save. Keep the vault open, check storage, then enable again.
 
 ### Does it work on a phone or a tablet?
 
 It is not marked desktop only and uses no Node module. The tests run on a desktop only.
-
-### Does it sync automatically?
-
-No. You select Sync now, so you control the requests.
 
 ### What happens to an annotation that I delete on Hypothesis?
 
@@ -121,7 +116,7 @@ Nothing. The search API does not list deleted annotations, so the plugin cannot 
 
 ### Does it import groups, replies or PDFs?
 
-It imports the annotations of yours that the search API returns for your user name, including annotations in your groups. Replies are skipped. A PDF with no web address gets a note under the identifier that Hypothesis gives it.
+It imports the annotations of yours that the search API returns for your user name, including annotations in your groups. A PDF with no web address gets a note under the identifier that Hypothesis gives it.
 
 ### Which older plugin is this?
 
