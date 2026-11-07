@@ -1,7 +1,10 @@
 {
 	"name": "annotation-inbox",
-	"repository": {"type": "git", "url": "theluckystrike/annotation-inbox.git"},
-	"version": "1.2.0",
+	"repository": {
+		"type": "git",
+		"url": "theluckystrike/annotation-inbox.git"
+	},
+	"version": "1.2.1",
 	"private": true,
 	"description": "Pull your Hypothesis web highlights, page notes and tags into your vault as one note per page, with incremental resync that skips duplicates and never recreates notes you deleted. Unofficial, not made by Hypothesis.",
 	"main": "main.js",
